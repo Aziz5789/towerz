@@ -49,6 +49,9 @@ int main(int argc, char *argv[]) {
 
     printf("OpenGL %s\n", (const char *)glGetString(GL_VERSION));
 
+    // sky blue color
+    glClearColor(0.53f, 0.81f, 0.92f, 1.0f);
+
     bool running = true;
     while (running) {
         SDL_Event event;
@@ -61,6 +64,9 @@ int main(int argc, char *argv[]) {
                 running = false;
             }
         }
+
+        glClear(GL_COLOR_BUFFER_BIT);
+        SDL_GL_SwapWindow(window);
     }
 
     SDL_GL_DestroyContext(gl);
