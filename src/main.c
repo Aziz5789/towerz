@@ -1,10 +1,6 @@
-
-#include "SDL3/SDL_events.h"
-#include "SDL3/SDL_init.h"
-#include "SDL3/SDL_keycode.h"
-#include "SDL3/SDL_video.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
+#include <glad/gl.h>
 #include <stdio.h>
 
 static const int WINDOW_HEIGHT = 600;
@@ -40,6 +36,18 @@ int main(int argc, char *argv[]) {
         SDL_Quit();
         return 1;
     }
+
+    int version = gladLoadGL((GLADloadfunc)SDL_GL_GetProcAddress);
+
+    if (version == 0) {
+        fprintf(stderr, "gladLoadGL failed!\n");
+        SDL_GL_DestroyContext(gl);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return 1;
+    }
+
+    printf("OpenGL %s\n", (const char *)glGetString(GL_VERSION));
 
     bool running = true;
     while (running) {

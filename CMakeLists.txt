@@ -12,9 +12,11 @@ FetchContent_Declare(SDL3
     GIT_SHALLOW    TRUE)
 FetchContent_MakeAvailable(SDL3)
 
+add_library(glad STATIC external/glad/src/gl.c)
 add_executable(towerz src/main.c)
 
-target_link_libraries(towerz PRIVATE SDL3::SDL3)
+target_include_directories(glad PUBLIC external/glad/include)
+target_link_libraries(towerz PRIVATE SDL3::SDL3 glad)
 
 if(NOT MSVC)
     target_compile_options(towerz PRIVATE -Wall -Wextra)
