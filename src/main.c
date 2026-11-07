@@ -10,9 +10,13 @@ int main(int argc, char *argv[]) {
     (void)argc;
     (void)argv;
 
+    int exit_code = 1;
+    SDL_Window *window = NULL;
+    SDL_GLContext gl = NULL;
+
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
-        return 1;
+        goto clean_up;
     }
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -20,31 +24,25 @@ int main(int argc, char *argv[]) {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
 
-    SDL_Window *window = SDL_CreateWindow("Towerz", WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_OPENGL);
+    window = SDL_CreateWindow("Towerz", WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_OPENGL);
 
     if (window == NULL) {
         fprintf(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
-        SDL_Quit();
-        return 1;
+        goto clean_up;
     }
 
-    SDL_GLContext gl = SDL_GL_CreateContext(window);
+    gl = SDL_GL_CreateContext(window);
 
     if (gl == NULL) {
         fprintf(stderr, "SDL_GL_CreateContext failed: %s\n", SDL_GetError());
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return 1;
+        goto clean_up;
     }
 
     int version = gladLoadGL((GLADloadfunc)SDL_GL_GetProcAddress);
 
     if (version == 0) {
         fprintf(stderr, "gladLoadGL failed!\n");
-        SDL_GL_DestroyContext(gl);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return 1;
+        goto clean_up;
     }
 
     printf("OpenGL %s\n", (const char *)glGetString(GL_VERSION));
@@ -68,9 +66,16 @@ int main(int argc, char *argv[]) {
         glClear(GL_COLOR_BUFFER_BIT);
         SDL_GL_SwapWindow(window);
     }
+    exit_code = 0;
 
-    SDL_GL_DestroyContext(gl);
-    SDL_DestroyWindow(window);
+clean_up:
+    if (gl) {
+        SDL_GL_DestroyContext(gl);
+    }
+    if (window) {
+        SDL_DestroyWindow(window);
+    }
     SDL_Quit();
-    return 0;
+
+    return exit_code;
 }
