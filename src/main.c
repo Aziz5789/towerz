@@ -6,6 +6,73 @@
 static const int WINDOW_HEIGHT = 600;
 static const int WINDOW_WIDTH = 800;
 
+static const char *VERTEX_SHADER_SRC = "#version 330 core\n"
+                                       "layout(location = 0) in vec3 a_pos;\n"
+                                       "\n"
+                                       "void main() {\n"
+                                       "    gl_Position = vec4(a_pos, 1.0);\n"
+                                       "}\n";
+
+static const char *FRAGMENT_SHADER_SRC = "#version 330 core\n"
+                                         "out vec4 frag_color;\n"
+                                         "\n"
+                                         "void main() {\n"
+                                         "    frag_color = vec4(1.0, 0.5, 0.2, 1.0);\n"
+                                         "}\n";
+
+static GLuint compile_shader(GLenum type, const char *src) {
+    GLuint shader = glCreateShader(type);
+    glShaderSource(shader, 1, &src, NULL);
+    glCompileShader(shader);
+
+    GLint result;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &result);
+
+    if (!result) {
+        char log[512];
+        glGetShaderInfoLog(shader, sizeof(log), NULL, log);
+        fprintf(stderr, "shader compile failed: \n%s\n", log);
+        glDeleteShader(shader);
+        return 0;
+    }
+    return shader;
+}
+
+static GLuint create_program(const char *vs_src, const char *fs_src) {
+
+    GLuint vs = compile_shader(GL_VERTEX_SHADER, vs_src);
+    if (vs == 0) {
+        return 0;
+    }
+
+    GLuint fs = compile_shader(GL_FRAGMENT_SHADER, fs_src);
+    if (fs == 0) {
+        glDeleteShader(vs);
+        return 0;
+    }
+
+    GLuint program = glCreateProgram();
+    glAttachShader(program, vs);
+    glAttachShader(program, fs);
+    glLinkProgram(program);
+
+    glDeleteShader(vs);
+    glDeleteShader(fs);
+
+    GLint result;
+    glGetProgramiv(program, GL_LINK_STATUS, &result);
+
+    if (!result) {
+        char log[512];
+        glGetProgramInfoLog(program, sizeof(log), NULL, log);
+        fprintf(stderr, "shader link failed: \n%s\n", log);
+        glDeleteProgram(program);
+        return 0;
+    }
+
+    return program;
+}
+
 int main(int argc, char *argv[]) {
     (void)argc;
     (void)argv;
@@ -13,6 +80,7 @@ int main(int argc, char *argv[]) {
     int exit_code = 1;
     SDL_Window *window = NULL;
     SDL_GLContext gl = NULL;
+    GLuint program = 0;
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
@@ -45,6 +113,13 @@ int main(int argc, char *argv[]) {
         goto clean_up;
     }
 
+    program = create_program(VERTEX_SHADER_SRC, FRAGMENT_SHADER_SRC);
+
+    if (program == 0) {
+        fprintf(stderr, "create_program failed!\n");
+        goto clean_up;
+    }
+
     printf("OpenGL %s\n", (const char *)glGetString(GL_VERSION));
 
     // sky blue color
@@ -69,6 +144,9 @@ int main(int argc, char *argv[]) {
     exit_code = 0;
 
 clean_up:
+    if (program) {
+        glDeleteProgram(program);
+    }
     if (gl) {
         SDL_GL_DestroyContext(gl);
     }
