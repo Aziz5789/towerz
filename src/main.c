@@ -20,6 +20,12 @@ static const char *FRAGMENT_SHADER_SRC = "#version 330 core\n"
                                          "    frag_color = vec4(1.0, 0.5, 0.2, 1.0);\n"
                                          "}\n";
 
+static const float TRIANGLE_VERTICES[] = {
+    -0.5f, -0.5f, 0.0f, // bottom left
+    0.5f,  -0.5f, 0.0f, // bottom right
+    0.0f,  0.5f,  0.0f, // top
+};
+
 static GLuint compile_shader(GLenum type, const char *src) {
     GLuint shader = glCreateShader(type);
     glShaderSource(shader, 1, &src, NULL);
@@ -81,6 +87,8 @@ int main(int argc, char *argv[]) {
     SDL_Window *window = NULL;
     SDL_GLContext gl = NULL;
     GLuint program = 0;
+    GLuint vbo = 0;
+    GLuint vao = 0;
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
@@ -120,6 +128,16 @@ int main(int argc, char *argv[]) {
         goto clean_up;
     }
 
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(TRIANGLE_VERTICES), TRIANGLE_VERTICES, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+    glEnableVertexAttribArray(0);
+
     printf("OpenGL %s\n", (const char *)glGetString(GL_VERSION));
 
     // sky blue color
@@ -139,11 +157,22 @@ int main(int argc, char *argv[]) {
         }
 
         glClear(GL_COLOR_BUFFER_BIT);
+
+        glUseProgram(program);
+        glBindVertexArray(vao);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+
         SDL_GL_SwapWindow(window);
     }
     exit_code = 0;
 
 clean_up:
+    if (vao) {
+        glDeleteVertexArrays(1, &vao);
+    }
+    if (vbo) {
+        glDeleteBuffers(1, &vbo);
+    }
     if (program) {
         glDeleteProgram(program);
     }
