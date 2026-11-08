@@ -1,29 +1,39 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <glad/gl.h>
+#include <math.h>
 #include <stdio.h>
 
 static const int WINDOW_HEIGHT = 600;
 static const int WINDOW_WIDTH = 800;
 
-static const char *VERTEX_SHADER_SRC = "#version 330 core\n"
-                                       "layout(location = 0) in vec3 a_pos;\n"
-                                       "\n"
-                                       "void main() {\n"
-                                       "    gl_Position = vec4(a_pos, 1.0);\n"
-                                       "}\n";
+static const char *VERTEX_SHADER_SRC =
+    "#version 330 core\n"
+    "uniform vec2 u_offset;\n"
+    "layout(location = 0) in vec3 a_pos;\n"
+    "\n"
+    "void main() {\n"
+    "    gl_Position = vec4(a_pos.xy + u_offset, a_pos.z, 1.0);\n"
+    "}\n";
 
 static const char *FRAGMENT_SHADER_SRC = "#version 330 core\n"
+                                         "uniform vec4 u_color;\n"
                                          "out vec4 frag_color;\n"
                                          "\n"
                                          "void main() {\n"
-                                         "    frag_color = vec4(1.0, 0.5, 0.2, 1.0);\n"
+                                         "    frag_color = u_color;\n"
                                          "}\n";
 
-static const float TRIANGLE_VERTICES[] = {
-    -0.5f, -0.5f, 0.0f, // bottom left
-    0.5f,  -0.5f, 0.0f, // bottom right
-    0.0f,  0.5f,  0.0f, // top
+static const float RECT_VERTICES[] = {
+    -0.4f, -0.15f, 0.0f, // 0: bottom left
+    0.4f,  -0.15f, 0.0f, // 1: bottom right
+    0.4f,  0.15f,  0.0f, // 2: top right
+    -0.4f, 0.15f,  0.0f, // 3: top left
+};
+
+static const unsigned int RECT_INDICES[] = {
+    0, 1, 2, // triangle 1
+    0, 2, 3, // triangle 2
 };
 
 static GLuint compile_shader(GLenum type, const char *src) {
@@ -88,6 +98,7 @@ int main(int argc, char *argv[]) {
     SDL_GLContext gl = NULL;
     GLuint program = 0;
     GLuint vbo = 0;
+    GLuint ebo = 0;
     GLuint vao = 0;
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -128,12 +139,30 @@ int main(int argc, char *argv[]) {
         goto clean_up;
     }
 
+    GLint color_loc = glGetUniformLocation(program, "u_color");
+
+    if (color_loc == -1) {
+        fprintf(stderr, "location of u_color not found!\n");
+        goto clean_up;
+    }
+
+    GLint offset_loc = glGetUniformLocation(program, "u_offset");
+
+    if (offset_loc == -1) {
+        fprintf(stderr, "location of u_offset not found!\n");
+        goto clean_up;
+    }
+
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(TRIANGLE_VERTICES), TRIANGLE_VERTICES, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(RECT_VERTICES), RECT_VERTICES, GL_STATIC_DRAW);
+
+    glGenBuffers(1, &ebo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(RECT_INDICES), RECT_INDICES, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
@@ -159,8 +188,12 @@ int main(int argc, char *argv[]) {
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUseProgram(program);
+
+        Uint64 ticks = SDL_GetTicks();
+        glUniform4f(color_loc, 1.0f, 0.3f, (ticks % 1000) / 1000.0f, 1.0f);
+        glUniform2f(offset_loc, 0.5f * sinf(ticks / 1000.0f), 0);
         glBindVertexArray(vao);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void *)0);
 
         SDL_GL_SwapWindow(window);
     }
@@ -169,6 +202,9 @@ int main(int argc, char *argv[]) {
 clean_up:
     if (vao) {
         glDeleteVertexArrays(1, &vao);
+    }
+    if (ebo) {
+        glDeleteBuffers(1, &ebo);
     }
     if (vbo) {
         glDeleteBuffers(1, &vbo);

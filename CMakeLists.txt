@@ -20,6 +20,7 @@ target_link_libraries(towerz PRIVATE SDL3::SDL3 glad)
 
 if(NOT MSVC)
     target_compile_options(towerz PRIVATE -Wall -Wextra)
+    target_link_libraries(towerz PRIVATE m)
 
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         target_compile_options(towerz PRIVATE -fsanitize=address,undefined -g)
