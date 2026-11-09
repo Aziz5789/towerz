@@ -8,14 +8,13 @@
 static const int WINDOW_HEIGHT = 600;
 static const int WINDOW_WIDTH = 800;
 
-static const char *VERTEX_SHADER_SRC =
-    "#version 330 core\n"
-    "uniform vec2 u_offset;\n"
-    "layout(location = 0) in vec3 a_pos;\n"
-    "\n"
-    "void main() {\n"
-    "    gl_Position = vec4(a_pos.xy + u_offset, a_pos.z, 1.0);\n"
-    "}\n";
+static const char *VERTEX_SHADER_SRC = "#version 330 core\n"
+                                       "uniform mat4 u_model;\n"
+                                       "layout(location = 0) in vec3 a_pos;\n"
+                                       "\n"
+                                       "void main() {\n"
+                                       "    gl_Position = u_model * vec4(a_pos, 1.0);\n"
+                                       "}\n";
 
 static const char *FRAGMENT_SHADER_SRC = "#version 330 core\n"
                                          "uniform vec4 u_color;\n"
@@ -147,10 +146,10 @@ int main(int argc, char *argv[]) {
         goto clean_up;
     }
 
-    GLint offset_loc = glGetUniformLocation(program, "u_offset");
+    GLint model_loc = glGetUniformLocation(program, "u_model");
 
-    if (offset_loc == -1) {
-        fprintf(stderr, "location of u_offset not found!\n");
+    if (model_loc == -1) {
+        fprintf(stderr, "location of u_model not found!\n");
         goto clean_up;
     }
 
@@ -192,7 +191,8 @@ int main(int argc, char *argv[]) {
 
         Uint64 ticks = SDL_GetTicks();
         glUniform4f(color_loc, 1.0f, 0.3f, (ticks % 1000) / 1000.0f, 1.0f);
-        glUniform2f(offset_loc, 0.5f * sinf(ticks / 1000.0f), 0);
+        Mat4 model = mat4_translate(0.5f * sinf(ticks / 1000.0f), 0.0f, 0.0f);
+        glUniformMatrix4fv(model_loc, 1, GL_FALSE, model.m);
         glBindVertexArray(vao);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void *)0);
 
