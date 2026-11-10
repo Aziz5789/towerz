@@ -185,7 +185,8 @@ int main(int argc, char *argv[]) {
 
     float aspect = (float)WINDOW_WIDTH / WINDOW_HEIGHT;
 
-    Mat4 projection = mat4_ortho(-aspect, aspect, -1, 1, -1, 1);
+    // Mat4 projection = mat4_ortho(-aspect, aspect, -1, 1, -1, 1);
+    Mat4 projection = mat4_perspective(0.785f, aspect, 0.1f, 100.0f);
 
     glUniformMatrix4fv(projection_loc, 1, GL_FALSE, projection.m);
 
@@ -208,9 +209,7 @@ int main(int argc, char *argv[]) {
 
         Uint64 ticks = SDL_GetTicks();
         glUniform4f(color_loc, 1.0f, 0.3f, (ticks % 1000) / 1000.0f, 1.0f);
-        Mat4 model =
-            mat4_multiply(mat4_translate(0.5f, 0.0f, 0.0f), mat4_rotate_z(ticks / 1000.0f));
-
+        Mat4 model = mat4_translate(0.0f, 0.0f, -2.0f - sinf(ticks / 1000.0f));
         glUniformMatrix4fv(model_loc, 1, GL_FALSE, model.m);
         glBindVertexArray(vao);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void *)0);

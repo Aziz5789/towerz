@@ -68,3 +68,18 @@ Mat4 mat4_ortho(float left, float right, float bottom, float top, float near, fl
 
     return matrix;
 }
+
+Mat4 mat4_perspective(float fov, float aspect, float near, float far) {
+    Mat4 matrix = {0};
+
+    float f = 1 / tanf(fov / 2);
+    float near_minus_far = near - far;
+
+    matrix.m[0] = f / aspect;
+    matrix.m[5] = f;
+    matrix.m[10] = (far + near) / near_minus_far;
+    matrix.m[11] = -1;
+    matrix.m[14] = (2 * far * near) / near_minus_far;
+
+    return matrix;
+}
