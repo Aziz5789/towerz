@@ -8,13 +8,15 @@
 static const int WINDOW_HEIGHT = 600;
 static const int WINDOW_WIDTH = 800;
 
-static const char *VERTEX_SHADER_SRC = "#version 330 core\n"
-                                       "uniform mat4 u_model;\n"
-                                       "layout(location = 0) in vec3 a_pos;\n"
-                                       "\n"
-                                       "void main() {\n"
-                                       "    gl_Position = u_model * vec4(a_pos, 1.0);\n"
-                                       "}\n";
+static const char *VERTEX_SHADER_SRC =
+    "#version 330 core\n"
+    "uniform mat4 u_model;\n"
+    "uniform mat4 u_projection;\n"
+    "layout(location = 0) in vec3 a_pos;\n"
+    "\n"
+    "void main() {\n"
+    "    gl_Position = u_projection * u_model * vec4(a_pos, 1.0);\n"
+    "}\n";
 
 static const char *FRAGMENT_SHADER_SRC = "#version 330 core\n"
                                          "uniform vec4 u_color;\n"
@@ -153,6 +155,13 @@ int main(int argc, char *argv[]) {
         goto clean_up;
     }
 
+    GLint projection_loc = glGetUniformLocation(program, "u_projection");
+
+    if (projection_loc == -1) {
+        fprintf(stderr, "location of u_projection not found!\n");
+        goto clean_up;
+    }
+
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
@@ -171,6 +180,14 @@ int main(int argc, char *argv[]) {
 
     // sky blue color
     glClearColor(0.53f, 0.81f, 0.92f, 1.0f);
+
+    glUseProgram(program);
+
+    float aspect = (float)WINDOW_WIDTH / WINDOW_HEIGHT;
+
+    Mat4 projection = mat4_ortho(-aspect, aspect, -1, 1, -1, 1);
+
+    glUniformMatrix4fv(projection_loc, 1, GL_FALSE, projection.m);
 
     bool running = true;
     while (running) {
@@ -191,7 +208,9 @@ int main(int argc, char *argv[]) {
 
         Uint64 ticks = SDL_GetTicks();
         glUniform4f(color_loc, 1.0f, 0.3f, (ticks % 1000) / 1000.0f, 1.0f);
-        Mat4 model = mat4_translate(0.5f * sinf(ticks / 1000.0f), 0.0f, 0.0f);
+        Mat4 model =
+            mat4_multiply(mat4_translate(0.5f, 0.0f, 0.0f), mat4_rotate_z(ticks / 1000.0f));
+
         glUniformMatrix4fv(model_loc, 1, GL_FALSE, model.m);
         glBindVertexArray(vao);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void *)0);

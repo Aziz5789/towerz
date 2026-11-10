@@ -1,4 +1,5 @@
 #include "mat4.h"
+#include <math.h>
 
 Mat4 mat4_identity(void) {
     Mat4 matrix = {0};
@@ -35,4 +36,35 @@ Mat4 mat4_multiply(Mat4 matrix_a, Mat4 matrix_b) {
     }
 
     return result;
+}
+
+Mat4 mat4_rotate_z(float radian) {
+    Mat4 matrix = mat4_identity();
+
+    float s = sinf(radian);
+    float c = cosf(radian);
+
+    matrix.m[0] = c;
+    matrix.m[1] = s;
+    matrix.m[4] = -s;
+    matrix.m[5] = c;
+
+    return matrix;
+}
+
+Mat4 mat4_ortho(float left, float right, float bottom, float top, float near, float far) {
+    Mat4 matrix = mat4_identity();
+
+    float right_minus_left = right - left;
+    float top_minus_bottom = top - bottom;
+    float far_minus_near = far - near;
+
+    matrix.m[0] = 2 / right_minus_left;
+    matrix.m[5] = 2 / top_minus_bottom;
+    matrix.m[10] = -2 / far_minus_near;
+    matrix.m[12] = -(right + left) / right_minus_left;
+    matrix.m[13] = -(top + bottom) / top_minus_bottom;
+    matrix.m[14] = -(far + near) / far_minus_near;
+
+    return matrix;
 }
