@@ -13,30 +13,71 @@ static const char *VERTEX_SHADER_SRC =
     "uniform mat4 u_model;\n"
     "uniform mat4 u_projection;\n"
     "layout(location = 0) in vec3 a_pos;\n"
+    "layout(location = 1) in vec3 a_normal;\n"
+    "out vec3 v_normal;\n"
     "\n"
     "void main() {\n"
     "    gl_Position = u_projection * u_model * vec4(a_pos, 1.0);\n"
+    "    v_normal = mat3(u_model) * a_normal;\n"
     "}\n";
 
-static const char *FRAGMENT_SHADER_SRC = "#version 330 core\n"
-                                         "uniform vec4 u_color;\n"
-                                         "out vec4 frag_color;\n"
-                                         "\n"
-                                         "void main() {\n"
-                                         "    frag_color = u_color;\n"
-                                         "}\n";
+static const char *FRAGMENT_SHADER_SRC =
+    "#version 330 core\n"
+    "uniform vec4 u_color;\n"
+    "in vec3 v_normal;\n"
+    "out vec4 frag_color;\n"
+    "\n"
+    "void main() {\n"
+    "    vec3 light_dir = normalize(vec3(0.4, 1.0, 0.7));\n"
+    "    float diffuse = max(dot(normalize(v_normal), light_dir), 0.0);\n"
+    "    float brightness = 0.3 + 0.7 * diffuse;\n"
+    "    frag_color = vec4(u_color.rgb * brightness, u_color.a);\n"
+    "}\n";
 
-static const float RECT_VERTICES[] = {
-    -0.4f, -0.15f, 0.0f, // 0: bottom left
-    0.4f,  -0.15f, 0.0f, // 1: bottom right
-    0.4f,  0.15f,  0.0f, // 2: top right
-    -0.4f, 0.15f,  0.0f, // 3: top left
+// clang-format off
+// Each vertex: position (x, y, z), normal (nx, ny, nz)
+static const float CUBE_VERTICES[] = {
+    // front (+z)
+    -0.5f, -0.5f,  0.5f,   0.0f,  0.0f,  1.0f,
+     0.5f, -0.5f,  0.5f,   0.0f,  0.0f,  1.0f,
+     0.5f,  0.5f,  0.5f,   0.0f,  0.0f,  1.0f,
+    -0.5f,  0.5f,  0.5f,   0.0f,  0.0f,  1.0f,
+    // back (-z)
+     0.5f, -0.5f, -0.5f,   0.0f,  0.0f, -1.0f,
+    -0.5f, -0.5f, -0.5f,   0.0f,  0.0f, -1.0f,
+    -0.5f,  0.5f, -0.5f,   0.0f,  0.0f, -1.0f,
+     0.5f,  0.5f, -0.5f,   0.0f,  0.0f, -1.0f,
+    // left (-x)
+    -0.5f, -0.5f, -0.5f,  -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f,  0.5f,  -1.0f,  0.0f,  0.0f,
+    -0.5f,  0.5f,  0.5f,  -1.0f,  0.0f,  0.0f,
+    -0.5f,  0.5f, -0.5f,  -1.0f,  0.0f,  0.0f,
+    // right (+x)
+     0.5f, -0.5f,  0.5f,   1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,   1.0f,  0.0f,  0.0f,
+     0.5f,  0.5f, -0.5f,   1.0f,  0.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,   1.0f,  0.0f,  0.0f,
+    // top (+y)
+    -0.5f,  0.5f,  0.5f,   0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,   0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f, -0.5f,   0.0f,  1.0f,  0.0f,
+    -0.5f,  0.5f, -0.5f,   0.0f,  1.0f,  0.0f,
+    // bottom (-y)
+    -0.5f, -0.5f, -0.5f,   0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,   0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,   0.0f, -1.0f,  0.0f,
+    -0.5f, -0.5f,  0.5f,   0.0f, -1.0f,  0.0f,
 };
 
-static const unsigned int RECT_INDICES[] = {
-    0, 1, 2, // triangle 1
-    0, 2, 3, // triangle 2
+static const unsigned int CUBE_INDICES[] = {
+     0,  1,  2,   0,  2,  3, // front
+     4,  5,  6,   4,  6,  7, // back
+     8,  9, 10,   8, 10, 11, // left
+    12, 13, 14,  12, 14, 15, // right
+    16, 17, 18,  16, 18, 19, // top
+    20, 21, 22,  20, 22, 23, // bottom
 };
+// clang-format on
 
 static GLuint compile_shader(GLenum type, const char *src) {
     GLuint shader = glCreateShader(type);
@@ -113,6 +154,8 @@ int main(int argc, char *argv[]) {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
 
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+
     window = SDL_CreateWindow("Towerz", WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_OPENGL);
 
     if (window == NULL) {
@@ -167,16 +210,21 @@ int main(int argc, char *argv[]) {
 
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(RECT_VERTICES), RECT_VERTICES, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(CUBE_VERTICES), CUBE_VERTICES, GL_STATIC_DRAW);
 
     glGenBuffers(1, &ebo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(RECT_INDICES), RECT_INDICES, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(CUBE_INDICES), CUBE_INDICES, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
 
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
     printf("OpenGL %s\n", (const char *)glGetString(GL_VERSION));
+
+    glEnable(GL_DEPTH_TEST);
 
     // sky blue color
     glClearColor(0.53f, 0.81f, 0.92f, 1.0f);
@@ -185,7 +233,6 @@ int main(int argc, char *argv[]) {
 
     float aspect = (float)WINDOW_WIDTH / WINDOW_HEIGHT;
 
-    // Mat4 projection = mat4_ortho(-aspect, aspect, -1, 1, -1, 1);
     Mat4 projection = mat4_perspective(0.785f, aspect, 0.1f, 100.0f);
 
     glUniformMatrix4fv(projection_loc, 1, GL_FALSE, projection.m);
@@ -203,16 +250,18 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glUseProgram(program);
 
         Uint64 ticks = SDL_GetTicks();
-        glUniform4f(color_loc, 1.0f, 0.3f, (ticks % 1000) / 1000.0f, 1.0f);
-        Mat4 model = mat4_translate(0.0f, 0.0f, -2.0f - sinf(ticks / 1000.0f));
+        glUniform4f(color_loc, 0.85f, 0.45f, 0.25f, 1.0f);
+        Mat4 model =
+            mat4_multiply(mat4_translate(0.0f, 0.0f, -3.0f), mat4_rotate_y(ticks / 1000.0f));
         glUniformMatrix4fv(model_loc, 1, GL_FALSE, model.m);
         glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void *)0);
+        glDrawElements(GL_TRIANGLES, sizeof(CUBE_INDICES) / sizeof(CUBE_INDICES[0]),
+                       GL_UNSIGNED_INT, (void *)0);
 
         SDL_GL_SwapWindow(window);
     }
