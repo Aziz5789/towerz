@@ -218,7 +218,8 @@ void render_frame(const Sim *sim) {
     glUseProgram(program);
 
     glUniform4f(color_loc, 0.85f, 0.45f, 0.25f, 1.0f);
-    Mat4 model = mat4_translate(sim->block.x, sim->block.y, 0.0f);
+    Mat4 model = mat4_multiply(mat4_translate(sim->block.x, sim->block.y, 0.0f),
+                               mat4_rotate_z(sim->block.angle));
     glUniformMatrix4fv(model_loc, 1, GL_FALSE, model.m);
     glBindVertexArray(vao);
     glDrawElements(GL_TRIANGLES, sizeof(CUBE_INDICES) / sizeof(CUBE_INDICES[0]), GL_UNSIGNED_INT,
