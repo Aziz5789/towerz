@@ -67,6 +67,21 @@ Mat4 mat4_rotate_y(float radian) {
     return matrix;
 }
 
+Mat4 mat4_rotate_x(float radian) {
+
+    Mat4 matrix = mat4_identity();
+
+    float s = sinf(radian);
+    float c = cosf(radian);
+
+    matrix.m[5] = c;
+    matrix.m[9] = -s;
+    matrix.m[6] = s;
+    matrix.m[10] = c;
+
+    return matrix;
+}
+
 Mat4 mat4_ortho(float left, float right, float bottom, float top, float near, float far) {
     Mat4 matrix = mat4_identity();
 

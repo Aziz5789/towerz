@@ -12,12 +12,13 @@ static const char *VERTEX_SHADER_SRC =
     "#version 330 core\n"
     "uniform mat4 u_model;\n"
     "uniform mat4 u_projection;\n"
+    "uniform mat4 u_view;\n"
     "layout(location = 0) in vec3 a_pos;\n"
     "layout(location = 1) in vec3 a_normal;\n"
     "out vec3 v_normal;\n"
     "\n"
     "void main() {\n"
-    "    gl_Position = u_projection * u_model * vec4(a_pos, 1.0);\n"
+    "    gl_Position = u_projection * u_view * u_model * vec4(a_pos, 1.0);\n"
     "    v_normal = mat3(u_model) * a_normal;\n"
     "}\n";
 
@@ -205,6 +206,13 @@ int main(int argc, char *argv[]) {
         goto clean_up;
     }
 
+    GLint view_loc = glGetUniformLocation(program, "u_view");
+
+    if (view_loc == -1) {
+        fprintf(stderr, "location of u_view not found!\n");
+        goto clean_up;
+    }
+
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
@@ -235,7 +243,11 @@ int main(int argc, char *argv[]) {
 
     Mat4 projection = mat4_perspective(0.785f, aspect, 0.1f, 100.0f);
 
+    Mat4 view = mat4_multiply(mat4_rotate_x(0.46f), mat4_translate(0.0f, -1.5f, 0.0f));
+
     glUniformMatrix4fv(projection_loc, 1, GL_FALSE, projection.m);
+
+    glUniformMatrix4fv(view_loc, 1, GL_FALSE, view.m);
 
     bool running = true;
     while (running) {
