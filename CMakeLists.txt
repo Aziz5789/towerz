@@ -13,7 +13,7 @@ FetchContent_Declare(SDL3
 FetchContent_MakeAvailable(SDL3)
 
 add_library(glad STATIC external/glad/src/gl.c)
-add_executable(towerz src/main.c src/mat4.c)
+add_executable(towerz src/main.c src/mat4.c src/render.c)
 
 target_include_directories(glad PUBLIC external/glad/include)
 target_link_libraries(towerz PRIVATE SDL3::SDL3 glad)
