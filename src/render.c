@@ -203,7 +203,7 @@ bool render_init(int width, int height) {
 
     Mat4 projection = mat4_perspective(0.785f, aspect, 0.1f, 100.0f);
 
-    Mat4 view = mat4_multiply(mat4_rotate_x(0.46f), mat4_translate(0.0f, -1.5f, 0.0f));
+    Mat4 view = mat4_translate(0.0f, -3.0f, -12.0f);
 
     glUniformMatrix4fv(projection_loc, 1, GL_FALSE, projection.m);
 
@@ -212,13 +212,13 @@ bool render_init(int width, int height) {
     return true;
 }
 
-void render_frame(float time_seconds) {
+void render_frame(const Sim *sim) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(program);
 
     glUniform4f(color_loc, 0.85f, 0.45f, 0.25f, 1.0f);
-    Mat4 model = mat4_multiply(mat4_translate(0.0f, 0.0f, -3.0f), mat4_rotate_y(time_seconds));
+    Mat4 model = mat4_translate(sim->block.x, sim->block.y, 0.0f);
     glUniformMatrix4fv(model_loc, 1, GL_FALSE, model.m);
     glBindVertexArray(vao);
     glDrawElements(GL_TRIANGLES, sizeof(CUBE_INDICES) / sizeof(CUBE_INDICES[0]), GL_UNSIGNED_INT,

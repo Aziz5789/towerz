@@ -1,4 +1,5 @@
 #include "render.h"
+#include "sim.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <glad/gl.h>
@@ -55,9 +56,17 @@ int main(int argc, char *argv[]) {
         goto clean_up;
     }
 
+    Sim sim;
+    sim_init(&sim);
+    Uint64 last_ticks = SDL_GetTicks();
+
     bool running = true;
     while (running) {
         SDL_Event event;
+        Uint64 now = SDL_GetTicks();
+        float dt = (now - last_ticks) / 1000.0f;
+        last_ticks = now;
+
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_EVENT_QUIT) {
                 running = false;
@@ -68,7 +77,8 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        render_frame(SDL_GetTicks() / 1000.0f);
+        sim_step(&sim, dt);
+        render_frame(&sim);
         SDL_GL_SwapWindow(window);
     }
     exit_code = 0;
