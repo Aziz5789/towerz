@@ -11,5 +11,6 @@ Mat4 mat4_rotate_y(float radian);
 Mat4 mat4_rotate_x(float radian);
 Mat4 mat4_ortho(float left, float right, float bottom, float top, float near, float far);
 Mat4 mat4_perspective(float fov, float aspect, float near, float far);
+Mat4 mat4_scale(float sx, float sy, float sz);
 
 #endif

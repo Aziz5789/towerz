@@ -113,3 +113,13 @@ Mat4 mat4_perspective(float fov, float aspect, float near, float far) {
 
     return matrix;
 }
+
+Mat4 mat4_scale(float sx, float sy, float sz) {
+    Mat4 matrix = mat4_identity();
+
+    matrix.m[0] = sx;
+    matrix.m[5] = sy;
+    matrix.m[10] = sz;
+
+    return matrix;
+}

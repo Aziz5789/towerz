@@ -3,10 +3,12 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <glad/gl.h>
+#include <math.h>
 #include <stdio.h>
 
 static const int WINDOW_HEIGHT = 600;
 static const int WINDOW_WIDTH = 800;
+static const float SIM_DT = 1.0f / 60.0f;
 
 int main(int argc, char *argv[]) {
     (void)argc;
@@ -60,12 +62,11 @@ int main(int argc, char *argv[]) {
     sim_init(&sim);
     Uint64 last_ticks = SDL_GetTicks();
 
+    float accumulator = 0.0f;
+
     bool running = true;
     while (running) {
         SDL_Event event;
-        Uint64 now = SDL_GetTicks();
-        float dt = (now - last_ticks) / 1000.0f;
-        last_ticks = now;
 
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_EVENT_QUIT) {
@@ -75,9 +76,23 @@ int main(int argc, char *argv[]) {
             if (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_ESCAPE) {
                 running = false;
             }
+
+            if (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_SPACE) {
+                sim_release(&sim);
+            }
         }
 
-        sim_step(&sim, dt);
+        Uint64 now = SDL_GetTicks();
+
+        float dt = fminf((now - last_ticks) / 1000.0f, 0.25f);
+        accumulator += dt;
+        last_ticks = now;
+
+        while (accumulator >= SIM_DT) {
+            sim_step(&sim, SIM_DT);
+            accumulator -= SIM_DT;
+        }
+
         render_frame(&sim);
         SDL_GL_SwapWindow(window);
     }
