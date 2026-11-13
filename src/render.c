@@ -3,12 +3,17 @@
 #include "sim.h"
 #include <glad/gl.h>
 #include <stdio.h>
+
+static const float CAMERA_ABOVE_TOP = 1.0f;
+static const float CAMERA_DEPTH = 10.5f;
+
 static GLuint program = 0;
 static GLuint vao = 0;
 static GLuint vbo = 0;
 static GLuint ebo = 0;
 static GLint model_loc = -1;
 static GLint color_loc = -1;
+static GLint view_loc = -1;
 
 static const char *VERTEX_SHADER_SRC =
     "#version 330 core\n"
@@ -177,7 +182,7 @@ bool render_init(int width, int height) {
         return false;
     }
 
-    GLint view_loc = glGetUniformLocation(program, "u_view");
+    view_loc = glGetUniformLocation(program, "u_view");
 
     if (view_loc == -1) {
         fprintf(stderr, "location of u_view not found!\n");
@@ -215,7 +220,7 @@ bool render_init(int width, int height) {
 
     Mat4 projection = mat4_perspective(0.785f, aspect, 0.1f, 100.0f);
 
-    Mat4 view = mat4_translate(0.0f, -3.0f, -12.0f);
+    Mat4 view = mat4_translate(0.0f, -10.0f, -CAMERA_DEPTH);
 
     glUniformMatrix4fv(projection_loc, 1, GL_FALSE, projection.m);
 
@@ -238,6 +243,9 @@ void render_frame(const Sim *sim) {
     draw_block(&sim->active_block);
 
     glUniform4f(color_loc, 0.5f, 0.5f, 0.55f, 1.0f);
+
+    Mat4 view = mat4_translate(0.0f, -(sim->scroll_y + CAMERA_ABOVE_TOP), -CAMERA_DEPTH);
+    glUniformMatrix4fv(view_loc, 1, GL_FALSE, view.m);
 
     Mat4 platform_model =
         mat4_multiply(mat4_translate(sim->platform.x, sim->platform.y, 0.0f),

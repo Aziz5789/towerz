@@ -6,8 +6,8 @@
 #include <math.h>
 #include <stdio.h>
 
-static const int WINDOW_HEIGHT = 600;
-static const int WINDOW_WIDTH = 800;
+static const int WINDOW_HEIGHT = 700;
+static const int WINDOW_WIDTH = 600;
 static const float SIM_DT = 1.0f / 60.0f;
 
 int main(int argc, char *argv[]) {

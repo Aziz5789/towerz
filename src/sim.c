@@ -3,13 +3,14 @@
 #include <stdbool.h>
 
 static const float PIVOT_X = 0.0f;
-static const float PIVOT_Y = 10.0f;
-static const float HANG_Y = 4.0f;      // center of the loop
+static const float CRANE_GAP = 2.5f;
+static const float ROPE_HEIGHT = 6.0f;
 static const float RADIUS_X = 1.25f;   // side-to-side width
 static const float RADIUS_Y = 0.50f;   // up-and-down depth
 static const float LOOP_SPEED = 1.25f; // radians per second
 static const float GRAVITY = -9.0f;    // gravity
 static const float STRAIGHTEN_SPEED = 2.5f;
+static const float SCROLL_SPEED = 3.0f;
 
 static Box block_box(const Block *b) {
     Box box = {b->x, b->y, BLOCK_HALF, BLOCK_HALF};
@@ -47,10 +48,13 @@ static void settle_block(Block *b, float surface_top) {
 static void place_on_crane(Sim *sim) {
     float phase = LOOP_SPEED * sim->time;
 
-    float x = PIVOT_X + RADIUS_X * sinf(phase);
-    float y = HANG_Y - RADIUS_Y * cosf(phase);
+    float hang_y = sim->scroll_y + CRANE_GAP;
+    float pivot_y = hang_y + ROPE_HEIGHT;
 
-    float angle = atan2f(x - PIVOT_X, PIVOT_Y - y);
+    float x = PIVOT_X + RADIUS_X * sinf(phase);
+    float y = hang_y - RADIUS_Y * cosf(phase);
+
+    float angle = atan2f(x - PIVOT_X, pivot_y - y);
 
     sim->active_block.x = x;
     sim->active_block.y = y;
@@ -74,11 +78,15 @@ void sim_init(Sim *sim) {
     sim->platform.y = -0.25f;
     sim->platform.half_w = 2.5f;
     sim->platform.half_h = 0.25f;
+
+    sim->scroll_y = box_top(landing_target(sim));
 }
 
 void sim_step(Sim *sim, float dt) {
 
     sim->time += dt;
+
+    sim->scroll_y += (box_top(landing_target(sim)) - sim->scroll_y) * SCROLL_SPEED * dt;
 
     if (sim->active_block.state == BLOCK_HANGING) {
         place_on_crane(sim);

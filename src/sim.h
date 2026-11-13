@@ -31,6 +31,7 @@ typedef struct {
     Block tower[MAX_BLOCKS];
     int tower_count;
     Box platform;
+    float scroll_y;
     float time;
 } Sim;
 
