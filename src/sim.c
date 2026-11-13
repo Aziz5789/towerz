@@ -1,5 +1,6 @@
 #include "sim.h"
 #include <math.h>
+#include <stdbool.h>
 
 static const float PIVOT_X = 0.0f;
 static const float PIVOT_Y = 10.0f;
@@ -10,60 +11,103 @@ static const float LOOP_SPEED = 1.25f; // radians per second
 static const float GRAVITY = -9.0f;    // gravity
 static const float STRAIGHTEN_SPEED = 2.5f;
 
+static Box block_box(const Block *b) {
+    Box box = {b->x, b->y, BLOCK_HALF, BLOCK_HALF};
+    return box;
+}
+
+static float box_top(Box b) { return b.y + b.half_h; }
+
+static bool block_hits(Box falling, Box target) {
+
+    float bottom = falling.y - falling.half_h;
+    float top = box_top(target);
+
+    float dx = fabsf(falling.x - target.x);
+    float max_dx = falling.half_w + target.half_w;
+
+    return dx < max_dx && bottom <= top;
+}
+
+static Box landing_target(const Sim *sim) {
+    if (sim->tower_count == 0) {
+        return sim->platform;
+    } else {
+        return block_box(&sim->tower[sim->tower_count - 1]);
+    }
+}
+
+static void settle_block(Block *b, float surface_top) {
+    b->y = surface_top + BLOCK_HALF;
+    b->vy = 0.0f;
+    b->angle = 0.0f;
+    b->state = BLOCK_LANDED;
+}
+
+static void place_on_crane(Sim *sim) {
+    float phase = LOOP_SPEED * sim->time;
+
+    float x = PIVOT_X + RADIUS_X * sinf(phase);
+    float y = HANG_Y - RADIUS_Y * cosf(phase);
+
+    float angle = atan2f(x - PIVOT_X, PIVOT_Y - y);
+
+    sim->active_block.x = x;
+    sim->active_block.y = y;
+    sim->active_block.angle = angle;
+}
+
+static void spawn_block(Sim *sim) {
+    sim->active_block.vy = 0.0f;
+    sim->active_block.state = BLOCK_HANGING;
+    place_on_crane(sim);
+}
+
 void sim_init(Sim *sim) {
-    sim->block.x = PIVOT_X;
-    sim->block.y = HANG_Y - RADIUS_Y;
-    sim->block.angle = 0.0f;
-    sim->block.vy = 0.0f;
-    sim->block.state = BLOCK_HANGING;
+    sim->time = 0.0f;
+
+    spawn_block(sim);
+
+    sim->tower_count = 0;
 
     sim->platform.x = 0.0f;
     sim->platform.y = -0.25f;
     sim->platform.half_w = 2.5f;
     sim->platform.half_h = 0.25f;
-
-    sim->time = 0.0f;
 }
 
 void sim_step(Sim *sim, float dt) {
 
     sim->time += dt;
 
-    if (sim->block.state == BLOCK_HANGING) {
-        float phase = LOOP_SPEED * sim->time;
+    if (sim->active_block.state == BLOCK_HANGING) {
+        place_on_crane(sim);
+    } else if (sim->active_block.state == BLOCK_FALLING) {
+        sim->active_block.vy += GRAVITY * dt;
+        sim->active_block.y += sim->active_block.vy * dt;
+        sim->active_block.angle -= sim->active_block.angle * STRAIGHTEN_SPEED * dt;
 
-        float x = PIVOT_X + RADIUS_X * sinf(phase);
-        float y = HANG_Y - RADIUS_Y * cosf(phase);
+        Box falling = block_box(&sim->active_block);
+        Box target = landing_target(sim);
 
-        float angle = atan2f(x - PIVOT_X, PIVOT_Y - y);
+        if (block_hits(falling, target)) {
+            settle_block(&sim->active_block, box_top(target));
 
-        sim->block.x = x;
-        sim->block.y = y;
-        sim->block.angle = angle;
-    } else if (sim->block.state == BLOCK_FALLING) {
-        sim->block.vy += GRAVITY * dt;
-        sim->block.y += sim->block.vy * dt;
-        sim->block.angle -= sim->block.angle * STRAIGHTEN_SPEED * dt;
+            if (sim->tower_count < MAX_BLOCKS) {
+                sim->tower[sim->tower_count] = sim->active_block;
+                sim->tower_count++;
+            }
 
-        float bottom = sim->block.y - BLOCK_HALF;
-        float platform_top = sim->platform.y + sim->platform.half_h;
-
-        float dx = fabsf(sim->block.x - sim->platform.x);
-        float max_dx = BLOCK_HALF + sim->platform.half_w;
-
-        if (dx < max_dx && bottom <= platform_top) {
-            sim->block.state = BLOCK_LANDED;
-
-            sim->block.y = sim->platform.y + sim->platform.half_h + BLOCK_HALF;
-            sim->block.vy = 0.0f;
-            sim->block.angle = 0.0f;
+            spawn_block(sim);
+        } else if (sim->tower_count > 0 && block_hits(falling, sim->platform)) {
+            settle_block(&sim->active_block, box_top(sim->platform));
         }
     }
 }
 
 void sim_release(Sim *sim) {
-    if (sim->block.state == BLOCK_HANGING) {
-        sim->block.state = BLOCK_FALLING;
-        sim->block.vy = 0.0f;
+    if (sim->active_block.state == BLOCK_HANGING) {
+        sim->active_block.state = BLOCK_FALLING;
+        sim->active_block.vy = 0.0f;
     }
 }

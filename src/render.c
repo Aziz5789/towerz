@@ -135,6 +135,18 @@ static GLuint create_program(const char *vs_src, const char *fs_src) {
     return program;
 }
 
+static void draw_block(const Block *b) {
+
+    glUniform4f(color_loc, 0.85f, 0.45f, 0.25f, 1.0f);
+    Mat4 model =
+        mat4_multiply(mat4_multiply(mat4_translate(b->x, b->y, 0.0f), mat4_rotate_z(b->angle)),
+                      mat4_scale(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE));
+
+    glUniformMatrix4fv(model_loc, 1, GL_FALSE, model.m);
+    glDrawElements(GL_TRIANGLES, sizeof(CUBE_INDICES) / sizeof(CUBE_INDICES[0]), GL_UNSIGNED_INT,
+                   (void *)0);
+}
+
 bool render_init(int width, int height) {
 
     program = create_program(VERTEX_SHADER_SRC, FRAGMENT_SHADER_SRC);
@@ -217,22 +229,21 @@ void render_frame(const Sim *sim) {
 
     glUseProgram(program);
 
-    glUniform4f(color_loc, 0.85f, 0.45f, 0.25f, 1.0f);
-    Mat4 model = mat4_multiply(mat4_multiply(mat4_translate(sim->block.x, sim->block.y, 0.0f),
-                                             mat4_rotate_z(sim->block.angle)),
-                               mat4_scale(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE));
-
-    glUniformMatrix4fv(model_loc, 1, GL_FALSE, model.m);
     glBindVertexArray(vao);
-    glDrawElements(GL_TRIANGLES, sizeof(CUBE_INDICES) / sizeof(CUBE_INDICES[0]), GL_UNSIGNED_INT,
-                   (void *)0);
+
+    for (int i = 0; i < sim->tower_count; i++) {
+        draw_block(&sim->tower[i]);
+    }
+
+    draw_block(&sim->active_block);
 
     glUniform4f(color_loc, 0.5f, 0.5f, 0.55f, 1.0f);
 
-    model = mat4_multiply(mat4_translate(sim->platform.x, sim->platform.y, 0.0f),
-                          mat4_scale(sim->platform.half_w * 2, sim->platform.half_h * 2, 1));
+    Mat4 platform_model =
+        mat4_multiply(mat4_translate(sim->platform.x, sim->platform.y, 0.0f),
+                      mat4_scale(sim->platform.half_w * 2, sim->platform.half_h * 2, 1));
 
-    glUniformMatrix4fv(model_loc, 1, GL_FALSE, model.m);
+    glUniformMatrix4fv(model_loc, 1, GL_FALSE, platform_model.m);
     glDrawElements(GL_TRIANGLES, sizeof(CUBE_INDICES) / sizeof(CUBE_INDICES[0]), GL_UNSIGNED_INT,
                    (void *)0);
 }

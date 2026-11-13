@@ -3,6 +3,7 @@
 
 #define BLOCK_SIZE 1.0f
 #define BLOCK_HALF (BLOCK_SIZE / 2.0f)
+#define MAX_BLOCKS 64 
 
 typedef enum{
     BLOCK_HANGING,
@@ -23,13 +24,17 @@ typedef struct {
     float y;
     float half_w;
     float half_h;
-} Platform;
+} Box;
 
 typedef struct {
-    Block block;
-    Platform platform;
+    Block active_block;
+    Block tower[MAX_BLOCKS];
+    int tower_count;
+    Box platform;
     float time;
 } Sim;
+
+
 
 void sim_init(Sim *sim);
 void sim_step(Sim *sim, float dt);
